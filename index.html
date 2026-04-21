@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Roboto', Arial, sans-serif; background: #f4f4f4; color: #333; font-size: 14px; height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Top Nav ── */
+    .top-nav {
+      height: 48px;
+      background: #1a9494;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .top-nav-logo {
+      width: 34px; height: 34px;
+      background: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #1a9494; font-size: 13px;
+    }
+
+    /* ── App body ── */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 48px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .sidebar-avatar {
+      width: 32px; height: 32px;
+      background: #1a9494;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 11px; font-weight: 600;
+      cursor: pointer;
+    }
+    .sidebar-icon {
+      width: 32px; height: 32px;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: #777;
+      margin-top: 4px;
+    }
+    .sidebar-icon.active { color: #1a9494; background: #e6f7f7; }
+    .sidebar-icon svg { width: 20px; height: 20px; }
+
+    /* ── Main Content ── */
+    .main-content {
+      flex: 1;
+      padding: 28px 36px;
+      overflow-y: auto;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 400;
+      margin-bottom: 18px;
+      color: #333;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 22px;
+    }
+    .tab {
+      padding: 10px 18px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: #888;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      user-select: none;
+    }
+    .tab.active { color: #1a9494; border-bottom-color: #1a9494; }
+    .tab:hover:not(.active) { color: #555; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Toggle ── */
+    .toggle-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 18px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 38px; height: 21px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #ccc;
+      border-radius: 21px;
+      transition: background 0.25s;
+    }
+    .toggle-track::before {
+      content: '';
+      position: absolute;
+      width: 15px; height: 15px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.25s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: #1a9494; }
+    .toggle-switch input:checked + .toggle-track::before { transform: translateX(17px); }
+    .toggle-label { font-size: 13px; color: #555; }
+
+    /* ── Table ── */
+    .table-card {
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 12px;
+      color: #888;
+      font-weight: 500;
+      border-bottom: 1px solid #eeee;
+      white-space: nowrap;
+      background: white;
+    }
+    tbody tr { border-bottom: 1px solid #f2f2f2; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 10px 14px; font-size: 13px; vertical-align: middle; }
+
+    .badge-success {
+      display: inline-block;
+      background: #e2f5ee;
+      color: #1a9474;
+      padding: 3px 11px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+
+    .row-icon-btn {
+      width: 28px; height: 28px;
+      background: #e6f7f7;
+      border-radius: 4px;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      border: none;
+      color: #1a9494;
+    }
+    .row-icon-btn svg { width: 14px; height: 14px; }
+
+    /* ── Pagination ── */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 12px 14px;
+      gap: 6px;
+      font-size: 12px;
+      color: #666;
+      border-top: 1px solid #f0f0f0;
+      background: white;
+    }
+    .pagination select {
+      border: 1px solid #ddd;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #555;
+    }
+    .pg-info { margin: 0 8px; }
+    .pg-btn {
+      width: 28px; height: 28px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 3px;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      color: #555;
+    }
+    .pg-btn:disabled { color: #ccc; cursor: default; }
+
+    /* ── Manage Transactions ── */
+    .manage-toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: stretch;
+    }
+    .btn-primary {
+      background: #1a9494;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-primary:hover { background: #158080; }
+
+    .search-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 10px 38px 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      font-size: 13px;
+      background: #fafafa;
+      height: 100%;
+    }
+    .search-wrap input:focus { outline: none; border-color: #1a9494; }
+    .search-wrap input::placeholder { color: #bbb; }
+    .search-icon {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      color: #bbb;
+    }
+
+    .filter-dropdown {
+      width: 100%;
+      padding: 10px 36px 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      font-size: 13px;
+      background: #fafafa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23aaa' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+      appearance: none;
+      cursor: pointer;
+      margin-bottom: 12px;
+      color: #555;
+    }
+    .filter-dropdown:focus { outline: none; border-color: #1a9494; }
+
+    .payment-status-box {
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      background: #fafafa;
+      padding: 6px 14px 9px;
+      margin-bottom: 16px;
+      position: relative;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23aaa' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .payment-status-box .ps-label { font-size: 10px; color: #aaa; display: block; margin-bottom: 2px; }
+    .payment-status-box select {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      cursor: pointer;
+      appearance: none;
+      color: #555;
+    }
+    .payment-status-box select:focus { outline: none; }
+
+    .no-data { text-align: center; padding: 40px 16px; color: #aaa; font-size: 13px; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 36px 16px;
+      overflow-y: auto;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 4px;
+      width: 700px;
+      max-width: 100%;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 72px);
+    }
+
+    .modal-header {
+      background: #1a9494;
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 4px 4px 0 0;
+      flex-shrink: 0;
+    }
+    .modal-header h2 { font-size: 16px; font-weight: 500; }
+    .modal-close {
+      background: none; border: none;
+      color: white; font-size: 22px;
+      cursor: pointer; line-height: 1;
+      padding: 0 2px;
+    }
+
+    .modal-body { padding: 24px; overflow-y: auto; }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 400;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .form-row { display: flex; gap: 12px; margin-bottom: 16px; }
+    .form-field { flex: 1; }
+    .form-field label { font-size: 11px; color: #aaa; display: block; margin-bottom: 4px; }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      font-size: 13px;
+      background: #fafafa;
+      color: #555;
+    }
+    .form-input:focus { outline: none; border-color: #1a9494; }
+    .form-input::placeholder { color: #bbb; }
+
+    .form-select {
+      width: 100%;
+      padding: 10px 36px 10px 14px;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      font-size: 13px;
+      background: #fafafa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23aaa' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+      appearance: none;
+      cursor: pointer;
+      color: #555;
+    }
+    .form-select:focus { outline: none; border-color: #1a9494; }
+
+    /* labeled box (floating label style) */
+    .labeled-box {
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      background: #fafafa;
+      padding: 6px 36px 8px 14px;
+      position: relative;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23aaa' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .labeled-box .box-label { font-size: 10px; color: #aaa; display: block; margin-bottom: 2px; }
+    .labeled-box select {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      cursor: pointer;
+      appearance: none;
+      color: #555;
+    }
+    .labeled-box select:focus { outline: none; }
+
+    .btn-outline-teal {
+      background: transparent;
+      color: #1a9494;
+      border: 1px solid #1a9494;
+      padding: 9px 16px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .btn-outline-teal:hover { background: #e6f7f7; }
+
+    .separator { border: none; border-top: 1px solid #eeee; margin: 20px 0; }
+
+    /* product table inside modal */
+    .product-table-wrap { margin: 14px 0 18px; }
+    .product-table { width: 100%; border-collapse: collapse; }
+    .product-table th {
+      text-align: left;
+      font-size: 12px; color: #888; font-weight: 500;
+      padding: 8px 0; border-bottom: 1px solid #eee;
+    }
+    .product-table td { padding: 10px 0; font-size: 13px; vertical-align: middle; }
+    .product-table td:not(:last-child) { padding-right: 12px; }
+
+    .qty-input {
+      width: 56px;
+      padding: 5px 8px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .qty-input:focus { outline: none; border-color: #1a9494; }
+
+    .btn-delete {
+      width: 28px; height: 28px;
+      background: #e53935;
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 300; line-height: 1;
+    }
+
+    /* Discount options */
+    .discount-placeholder { font-size: 13px; color: #aaa; padding: 8px 0; }
+
+    /* Transaction notes */
+    .textarea-full {
+      width: 100%;
+      min-height: 80px;
+      padding: 10px 14px;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      font-size: 13px;
+      background: #fafafa;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .textarea-full:focus { outline: none; border-color: #1a9494; }
+
+    /* Email options */
+    .info-text { font-size: 12px; color: #777; line-height: 1.6; margin-bottom: 12px; }
+
+    .url-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e6f5f5;
+      border: 1px solid #b2dede;
+      border-radius: 14px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #1a7878;
+      margin: 0 6px 10px 0;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .url-chip svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    .email-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .email-toggle-label { font-size: 13px; color: #444; }
+
+    .bcc-input-wrap { margin-bottom: 14px; }
+    .bcc-note { font-size: 11px; color: #aaa; margin-top: 4px; line-height: 1.4; }
+
+    .modal-footer {
+      padding: 16px 24px;
+      display: flex;
+      justify-content: flex-end;
+      border-top: 1px solid #eee;
+      flex-shrink: 0;
+    }
+
+    /* Revenue placeholder */
+    .placeholder-msg { color: #aaa; font-size: 14px; padding: 40px 0; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <!-- Top nav -->
+  <div class="top-nav">
+    <div class="top-nav-logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="10" r="9" stroke="#1a9494" stroke-width="1.5"/>
+        <path d="M10 5v10M5 10h10" stroke="#1a9494" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-avatar">Le</div>
+      <div class="sidebar-icon active">
+        <!-- receipt/transaction icon -->
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main-content">
+      <h1>Transactions</h1>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('overview', this)">Overview</div>
+        <div class="tab" onclick="switchTab('manage', this)">Manage Transactions</div>
+        <div class="tab" onclick="switchTab('revenue', this)">Revenue Report</div>
+      </div>
+
+      <!-- ── OVERVIEW TAB ── -->
+      <div id="tab-overview" class="tab-panel active">
+        <div class="toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" />
+            <span class="toggle-track"></span>
+          </label>
+          <span class="toggle-label">Only show refunded transactions</span>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Created</th>
+                <th>ID</th>
+                <th>Organization</th>
+                <th>Email</th>
+                <th>Tax Amount</th>
+                <th>Total</th>
+                <th>Payment Status</th>
+                <th>Refund Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><button class="row-icon-btn" title="View"><svg viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button></td>
+                <td>Apr 17, 2026, 11:09 AM</td>
+                <td>E020A6</td>
+                <td>AIGA</td>
+                <td>mklessig@natlptax.com</td>
+                <td>$ 0</td>
+                <td>$ 199</td>
+                <td><span class="badge-success">SUCCESSFUL</span></td>
+                <td>$ 0</td>
+              </tr>
+              <tr>
+                <td><button class="row-icon-btn" title="View"><svg viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button></td>
+                <td>Apr 16, 2026, 2:01 PM</td>
+                <td>EB2880</td>
+                <td>AIGA</td>
+                <td>kawanson@vitashkids.com</td>
+                <td>$ 0</td>
+                <td>$ 1058</td>
+                <td><span class="badge-success">SUCCESSFUL</span></td>
+                <td>$ 0</td>
+              </tr>
+              <tr>
+                <td><button class="row-icon-btn" title="View"><svg viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button></td>
+                <td>Apr 10, 2026, 9:45 AM</td>
+                <td>249189</td>
+                <td>AIGA</td>
+                <td>nickla.c@aol.com</td>
+                <td>$ 0</td>
+                <td>$ 199</td>
+                <td><span class="badge-success">SUCCESSFUL</span></td>
+                <td>$ 0</td>
+              </tr>
+              <tr>
+                <td><button class="row-icon-btn" title="View"><svg viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button></td>
+                <td>Apr 8, 2026, 8:53 PM</td>
+                <td>CM0E7</td>
+                <td>AIGA</td>
+                <td>jacquelynrachel@gmail.com</td>
+                <td>$ 0</td>
+                <td>$ 799</td>
+                <td><span class="badge-success">SUCCESSFUL</span></td>
+                <td>$ 0</td>
+              </tr>
+              <tr>
+                <td><button class="row-icon-btn" title="View"><svg viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button></td>
+                <td>Apr 6, 2026, 9:54 PM</td>
+                <td>13F197</td>
+                <td>AIGA</td>
+                <td>lauren.robeson@gmail.com</td>
+                <td>$ 0</td>
+                <td>$ 449</td>
+                <td><span class="badge-success">SUCCESSFUL</span></td>
+                <td>$ 0</td>
+              </tr>
+              <tr>
+                <td><button class="row-icon-btn" title="View"><svg viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button></td>
+                <td>Apr 6, 2026, 2:41 PM</td>
+                <td>99FD12</td>
+                <td>AIGA</td>
+                <td>byers.244@csu.edu</td>
+                <td>$ 0</td>
+                <td>$ 549</td>
+                <td><span class="badge-success">SUCCESSFUL</span></td>
+                <td>$ 0</td>
+              </tr>
+              <tr>
+                <td><button class="row-icon-btn" title="View"><svg viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg></button></td>
+                <td>Mar 26, 2026, 10:48 AM</td>
+                <td>50C033</td>
+                <td>AIGA</td>
+                <td>oliveleyp@gmail.com</td>
+                <td>$ 0</td>
+                <td>$ 79</td>
+                <td><span class="badge-success">SUCCESSFUL</span></td>
+                <td>$ 0</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span>Items per page:</span>
+            <select><option>20</option><option>50</option><option>100</option></select>
+            <span class="pg-info">1–7 of 7</span>
+            <button class="pg-btn" disabled>|&lt;</button>
+            <button class="pg-btn" disabled>&lt;</button>
+            <button class="pg-btn" disabled>1</button>
+            <button class="pg-btn" disabled>&gt;</button>
+            <button class="pg-btn" disabled>&gt;|</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MANAGE TRANSACTIONS TAB ── -->
+      <div id="tab-manage" class="tab-panel">
+        <div class="manage-toolbar">
+          <button class="btn-primary" onclick="openModal()">Create New Transaction</button>
+          <div class="search-wrap">
+            <input type="text" placeholder="Search by ID" />
+            <span class="search-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="#bbb" stroke-width="1.4"/><path d="M10 10l3.5 3.5" stroke="#bbb" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+          </div>
+        </div>
+
+        <select class="filter-dropdown">
+          <option value="">Select Organization</option>
+          <option>AIGA</option>
+        </select>
+
+        <div class="payment-status-box">
+          <span class="ps-label">Payment Status</span>
+          <select>
+            <option>All</option>
+            <option>Successful</option>
+            <option>Pending</option>
+            <option>Failed</option>
+            <option>Refunded</option>
+          </select>
+        </div>
+
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Created</th>
+                <th>ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Total Line Items</th>
+                <th>Tax Amount</th>
+                <th>Total</th>
+                <th>Payment Status</th>
+                <th>Refund Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="10" class="no-data">No data available</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span>Items per page:</span>
+            <select><option>0</option><option>20</option><option>50</option></select>
+            <span class="pg-info">0–0 of 0</span>
+            <button class="pg-btn" disabled>|&lt;</button>
+            <button class="pg-btn" disabled>&lt;</button>
+            <button class="pg-btn" disabled>1</button>
+            <button class="pg-btn" disabled>&gt;</button>
+            <button class="pg-btn" disabled>&gt;|</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REVENUE REPORT TAB ── -->
+      <div id="tab-revenue" class="tab-panel">
+        <div class="placeholder-msg">Revenue report coming soon.</div>
+      </div>
+    </div><!-- /main-content -->
+  </div><!-- /app-body -->
+
+
+  <!-- ══════════════════════════════════════
+       CREATE NEW TRANSACTION MODAL
+  ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+    <div class="modal" id="modalBox">
+      <div class="modal-header">
+        <h2>Create New Transaction</h2>
+        <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- User Information -->
+        <p class="section-title">User Information</p>
+        <div class="form-row">
+          <div class="form-field">
+            <input type="text" class="form-input" placeholder="First Name" />
+          </div>
+          <div class="form-field">
+            <input type="text" class="form-input" placeholder="Last Name" />
+          </div>
+          <div class="form-field">
+            <input type="email" class="form-input" placeholder="Email" />
+          </div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <button class="btn-primary" style="font-size:11px;padding:9px 16px;" onclick="toggleAdditionalInfo()">Add Additional Information (Optional)</button>
+        </div>
+        <div id="additionalInfoSection" style="display:none; margin-bottom:16px;">
+          <div class="form-row">
+            <div class="form-field">
+              <input type="text" class="form-input" placeholder="Phone" />
+            </div>
+            <div class="form-field">
+              <input type="text" class="form-input" placeholder="Company" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <input type="text" class="form-input" placeholder="Address Line 1" />
+            </div>
+            <div class="form-field">
+              <input type="text" class="form-input" placeholder="Address Line 2" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <input type="text" class="form-input" placeholder="City" />
+            </div>
+            <div class="form-field">
+              <input type="text" class="form-input" placeholder="State / Province" />
+            </div>
+            <div class="form-field">
+              <input type="text" class="form-input" placeholder="ZIP / Postal Code" />
+            </div>
+          </div>
+        </div>
+
+        <hr class="separator" />
+
+        <!-- Organization & Products -->
+        <p class="section-title">Organization &amp; Products</p>
+        <div class="form-row">
+          <div class="form-field">
+            <select class="form-select" id="orgSelect" onchange="handleOrgChange()">
+              <option value="">Organization</option>
+              <option value="AIGA">AIGA</option>
+              <option value="MindEdge">MindEdge</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <div class="labeled-box">
+              <span class="box-label">Currency Code</span>
+              <select>
+                <option>USD</option>
+                <option>EUR</option>
+                <option>GBP</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- These appear after org is selected -->
+        <div id="productFiltersSection" style="display:none;">
+          <div class="form-row" style="margin-bottom:12px;">
+            <div class="form-field">
+              <div class="labeled-box">
+                <span class="box-label">Learning Categories</span>
+                <select id="categorySelect">
+                  <option>All</option>
+                  <option>Design</option>
+                  <option>Business</option>
+                  <option>Technology</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:12px;">
+            <div class="form-field">
+              <div class="labeled-box">
+                <span class="box-label">Product Type</span>
+                <select id="productTypeSelect">
+                  <option>All</option>
+                  <option>Course</option>
+                  <option>Certificate</option>
+                  <option>Workshop</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:12px;">
+            <div class="form-field">
+              <div class="labeled-box">
+                <span class="box-label">Products</span>
+                <select id="productSelect" onchange="handleProductSelect()">
+                  <option value="">— Select a product —</option>
+                  <option value="AIGA Project Management" data-msrp="919.00" data-map="919.00">AIGA Project Management</option>
+                  <option value="AIGA Design Thinking" data-msrp="749.00" data-map="749.00">AIGA Design Thinking</option>
+                  <option value="AIGA Brand Strategy" data-msrp="499.00" data-map="499.00">AIGA Brand Strategy</option>
+                  <option value="AIGA Professional Design Certification - AIGA DL (design leader) Nonmember" data-msrp="0.00" data-map="0.00">AIGA Professional Design Certification - AIGA DL (design leader) Nonmember</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product table — shown only when a product is selected -->
+          <div id="productTableWrap" class="product-table-wrap" style="display:none;">
+            <table class="product-table">
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>Quantity</th>
+                  <th>MSRP Amount</th>
+                  <th>MAP Amount</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="productTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <hr class="separator" />
+
+        <!-- Payment Details -->
+        <p class="section-title">Payment Details</p>
+        <div class="form-row">
+          <div class="form-field">
+            <select class="form-select">
+              <option value="">Payment Type</option>
+              <option>Credit Card</option>
+              <option>Check</option>
+              <option>Wire Transfer</option>
+              <option>Invoice</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <div class="labeled-box">
+              <span class="box-label">Collected By</span>
+              <select>
+                <option>MindEdge</option>
+                <option>AIGA</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <hr class="separator" />
+
+        <!-- Discount Options -->
+        <p class="section-title">Discount Options</p>
+        <div class="form-row">
+          <div class="form-field">
+            <input type="text" class="form-input" placeholder="Coupon Code" />
+          </div>
+          <div class="form-field">
+            <input type="text" class="form-input" placeholder="Discount Amount ($)" />
+          </div>
+        </div>
+
+        <hr class="separator" />
+
+        <!-- Transaction Notes -->
+        <p class="section-title" style="margin-bottom:12px;">Transaction Notes</p>
+        <textarea class="textarea-full" placeholder="Add any notes about this transaction..."></textarea>
+
+        <hr class="separator" />
+
+        <!-- Email Options -->
+        <p class="section-title" style="margin-bottom:12px;">Email options</p>
+        <p class="info-text">
+          MindEdge courses are hosted on more than one learning platform. Your organization has these login URLs below.
+        </p>
+        <div style="margin-bottom:12px;">
+          <a href="#" class="url-chip">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M7 1a6 6 0 100 12A6 6 0 007 1zm0 0v12M1 7h12M2 4h10M2 10h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            https://aiga.mindedgeonline.com/user/login.php
+          </a>
+          <a href="#" class="url-chip">
+            <svg viewBox="0 0 14 14" fill="none"><path d="M7 1a6 6 0 100 12A6 6 0 007 1zm0 0v12M1 7h12M2 4h10M2 10h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            https://aiga.learningplus.ai/login
+          </a>
+        </div>
+        <p class="info-text">
+          Enrolled users can receive an enrollment email or not, as specified below. BCC'd to phone (configured). You can designate one additional BCC value.
+        </p>
+        <p class="info-text">
+          For increased security, new users to the learning platform can receive their login credentials, including a password, in a separate email
+          that the specified BCC email above will not have access to. If the transaction includes payment processing, the user can receive a
+          transaction email with receipt that the specified BCC email will not have access to.
+        </p>
+
+        <div class="email-toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" checked />
+            <span class="toggle-track"></span>
+          </label>
+          <span class="email-toggle-label">Send enrollment email</span>
+        </div>
+
+        <div class="bcc-input-wrap">
+          <input type="email" class="form-input" placeholder="Additional enrollment email BCC recipient" />
+          <p class="bcc-note">This address will be BCC'd on enrollment emails in addition to the organization's existing BCC recipients.</p>
+        </div>
+
+        <div class="email-toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" checked />
+            <span class="toggle-track"></span>
+          </label>
+          <span class="email-toggle-label">Send welcome email with credentials for new users</span>
+        </div>
+
+      </div><!-- /modal-body -->
+
+      <div class="modal-footer">
+        <button class="btn-primary" style="padding:11px 28px; font-size:12px;" onclick="reviewDetails()">Review Details</button>
+      </div>
+    </div><!-- /modal -->
+  </div><!-- /modal-overlay -->
+
+
+  <script>
+    /* ── Tab switching ── */
+    function switchTab(name, el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    /* ── Modal ── */
+    function openModal() {
+      document.getElementById('modalOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('modalOverlay')) closeModal();
+    }
+
+    /* ── Additional info toggle ── */
+    function toggleAdditionalInfo() {
+      const s = document.getElementById('additionalInfoSection');
+      s.style.display = s.style.display === 'none' ? 'block' : 'none';
+    }
+
+    /* ── Org select → show product filters ── */
+    function handleOrgChange() {
+      const org = document.getElementById('orgSelect').value;
+      document.getElementById('productFiltersSection').style.display = org ? 'block' : 'none';
+      // reset product selection
+      document.getElementById('productSelect').value = '';
+      document.getElementById('productTableWrap').style.display = 'none';
+      document.getElementById('productTableBody').innerHTML = '';
+      // update products dropdown based on org
+      const productSelect = document.getElementById('productSelect');
+      productSelect.innerHTML = '<option value="">— Select a product —</option>';
+      const products = {
+        AIGA: [
+          { name: 'AIGA Project Management', msrp: '919.00', map: '919.00' },
+          { name: 'AIGA Design Thinking', msrp: '749.00', map: '749.00' },
+          { name: 'AIGA Brand Strategy', msrp: '499.00', map: '499.00' },
+          { name: 'AIGA Professional Design Certification - AIGA DL (design leader) Nonmember', msrp: '0.00', map: '0.00' },
+        ],
+        MindEdge: [
+          { name: 'MindEdge Leadership', msrp: '599.00', map: '599.00' },
+          { name: 'MindEdge Project Foundations', msrp: '399.00', map: '399.00' },
+        ],
+      };
+      (products[org] || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.dataset.msrp = p.msrp;
+        opt.dataset.map = p.map;
+        opt.textContent = p.name;
+        productSelect.appendChild(opt);
+      });
+    }
+
+    /* ── Product select → add row to table ── */
+    function handleProductSelect() {
+      const sel = document.getElementById('productSelect');
+      const opt = sel.options[sel.selectedIndex];
+      if (!sel.value) return;
+
+      const name = opt.value;
+      const msrp = opt.dataset.msrp;
+      const map  = opt.dataset.map;
+
+      // Check if already in table
+      const existing = document.querySelector(`#productTableBody tr[data-product="${CSS.escape(name)}"]`);
+      if (existing) return;
+
+      const tr = document.createElement('tr');
+      tr.dataset.product = name;
+      tr.innerHTML = `
+        <td>${name}</td>
+        <td><input type="number" class="qty-input" value="1" min="1" /></td>
+        <td>$ ${msrp}</td>
+        <td>$ ${map}</td>
+        <td><button class="btn-delete" onclick="removeProduct(this, '${name.replace(/'/g,"\\'")}')">&#xd7;</button></td>
+      `;
+      document.getElementById('productTableBody').appendChild(tr);
+      document.getElementById('productTableWrap').style.display = 'block';
+
+      // Reset select back to placeholder so user can add another
+      sel.value = '';
+    }
+
+    function removeProduct(btn, name) {
+      const tr = btn.closest('tr');
+      tr.remove();
+      if (document.getElementById('productTableBody').children.length === 0) {
+        document.getElementById('productTableWrap').style.display = 'none';
+      }
+    }
+
+    /* ── Review details ── */
+    function reviewDetails() {
+      alert('Review details — form is ready for submission logic.');
+    }
+  </script>
+</body>
+</html>
