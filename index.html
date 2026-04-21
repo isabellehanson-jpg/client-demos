@@ -703,16 +703,16 @@
                 <th>Refund Amount</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
+            <tbody id="manageTableBody">
+              <tr id="noDataRow">
                 <td colspan="10" class="no-data">No data available</td>
               </tr>
             </tbody>
           </table>
           <div class="pagination">
             <span>Items per page:</span>
-            <select><option>0</option><option>20</option><option>50</option></select>
-            <span class="pg-info">0–0 of 0</span>
+            <select><option>20</option><option>50</option><option>100</option></select>
+            <span class="pg-info" id="managePgInfo">0–0 of 0</span>
             <button class="pg-btn" disabled>|&lt;</button>
             <button class="pg-btn" disabled>&lt;</button>
             <button class="pg-btn" disabled>1</button>
@@ -1073,9 +1073,108 @@
       }
     }
 
-    /* ── Review details ── */
+    /* ── Generate random transaction ID ── */
+    function genId() {
+      return Math.random().toString(36).toUpperCase().slice(2, 8);
+    }
+
+    /* ── Format current date ── */
+    function formatNow() {
+      const d = new Date();
+      return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+        + ', ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+    }
+
+    /* ── Save transaction & populate Manage Transactions tab ── */
     function reviewDetails() {
-      alert('Review details — form is ready for submission logic.');
+      const firstName = document.querySelector('.modal-body input[placeholder="First Name"]').value.trim();
+      const lastName  = document.querySelector('.modal-body input[placeholder="Last Name"]').value.trim();
+      const email     = document.querySelector('.modal-body input[placeholder="Email"]').value.trim();
+
+      if (!firstName || !lastName || !email) {
+        showToast('Please fill in First Name, Last Name, and Email.', true);
+        return;
+      }
+
+      // Collect products
+      const productRows = document.querySelectorAll('#productTableBody tr');
+      let totalLineItems = 0;
+      let total = 0;
+      productRows.forEach(row => {
+        const qty  = parseInt(row.querySelector('.qty-input')?.value || 1);
+        const map  = parseFloat(row.cells[3]?.textContent.replace(/[^0-9.]/g,'') || 0);
+        totalLineItems += qty;
+        total += qty * map;
+      });
+
+      const taxAmount = 0;
+      const id = genId();
+      const now = formatNow();
+
+      // Build table row
+      const tbody = document.getElementById('manageTableBody');
+      const noDataRow = document.getElementById('noDataRow');
+      if (noDataRow) noDataRow.remove();
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${now}</td>
+        <td>${id}</td>
+        <td>${firstName}</td>
+        <td>${lastName}</td>
+        <td>${email}</td>
+        <td>${totalLineItems}</td>
+        <td>$ ${taxAmount.toFixed(2)}</td>
+        <td>$ ${total.toFixed(2)}</td>
+        <td><span class="badge-success">SUCCESSFUL</span></td>
+        <td>$ 0.00</td>
+      `;
+      tbody.appendChild(tr);
+
+      // Update pagination count
+      const count = tbody.querySelectorAll('tr').length;
+      document.getElementById('managePgInfo').textContent = `1–${count} of ${count}`;
+
+      closeModal();
+      resetModal();
+
+      // Switch to Manage Transactions tab
+      const tabs = document.querySelectorAll('.tab');
+      switchTab('manage', tabs[1]);
+
+      showToast('Transaction saved successfully!');
+    }
+
+    /* ── Reset modal form ── */
+    function resetModal() {
+      document.querySelector('.modal-body input[placeholder="First Name"]').value = '';
+      document.querySelector('.modal-body input[placeholder="Last Name"]').value = '';
+      document.querySelector('.modal-body input[placeholder="Email"]').value = '';
+      document.getElementById('orgSelect').value = '';
+      document.getElementById('productFiltersSection').style.display = 'none';
+      document.getElementById('productTableBody').innerHTML = '';
+      document.getElementById('productTableWrap').style.display = 'none';
+      document.getElementById('additionalInfoSection').style.display = 'none';
+    }
+
+    /* ── Toast notification ── */
+    function showToast(msg, isError = false) {
+      let toast = document.getElementById('toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = `
+          position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+          padding:12px 24px; border-radius:4px; font-size:13px; font-weight:500;
+          color:white; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,0.2);
+          transition:opacity 0.4s; opacity:0; pointer-events:none;
+        `;
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.background = isError ? '#e53935' : '#1a9494';
+      toast.style.opacity = '1';
+      setTimeout(() => { toast.style.opacity = '0'; }, 3000);
     }
   </script>
 </body>
